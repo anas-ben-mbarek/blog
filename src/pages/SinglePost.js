@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiUser, FiArrowLeft } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { FiArrowLeft, FiArrowRight } from 'react-icons/fi';
 
 const SinglePost = () => {
   const { id } = useParams();
   const [post, setPost] = useState(null);
+  const [relatedPosts, setRelatedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +24,22 @@ const SinglePost = () => {
 
     fetchPost();
   }, [id]);
+
+  useEffect(() => {
+    const fetchRelatedPosts = async () => {
+      try {
+        // Fetch 4 recent posts excluding the current one
+        const response = await axios.get(`${window.wpData.apiUrl}posts?per_page=4&exclude=${id}`);
+        setRelatedPosts(response.data);
+      } catch (error) {
+        console.error('Error fetching related posts:', error);
+      }
+    };
+
+    if (post) {
+      fetchRelatedPosts();
+    }
+  }, [post, id]);
 
   if (loading) {
     return (
@@ -56,7 +72,7 @@ const SinglePost = () => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen pt-24 px-4"
+      className="min-h-screen pt-24 px-4 pb-16"
     >
       <div className="container mx-auto max-w-4xl">
         <Link to="/blog" className="inline-flex items-center text-primary hover:underline mb-8">
@@ -71,30 +87,14 @@ const SinglePost = () => {
           dangerouslySetInnerHTML={{ __html: post.title.rendered }}
         />
         
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex items-center text-gray-600 dark:text-gray-400 mb-8 space-x-6"
-        >
-          <span className="flex items-center">
-            <FiCalendar className="mr-2" />
-            {new Date(post.date).toLocaleDateString()}
-          </span>
-          <span className="flex items-center">
-            <FiUser className="mr-2" />
-            {post.author_name || 'Anas'}
-          </span>
-        </motion.div>
-        
-        {post.featured_media && (
+        {post.featured_media ? (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             className="h-96 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg mb-8"
           />
-        )}
+        ) : null}
         
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -103,6 +103,49 @@ const SinglePost = () => {
           className="prose prose-lg dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: post.content.rendered }}
         />
+
+        {/* Related Posts Section */}
+        {relatedPosts.length > 0 && (
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mt-16 pt-12 border-t border-gray-200 dark:border-gray-700"
+          >
+            <h2 className="text-3xl font-bold mb-8">You Might Also Like</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {relatedPosts.map((relatedPost, index) => (
+                <motion.div
+                  key={relatedPost.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                  className="group"
+                >
+                  <Link to={`/post/${relatedPost.id}`} className="block">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
+                      <div className="h-48 bg-gradient-to-r from-blue-400 to-purple-500" />
+                      <div className="p-6">
+                        <h3 
+                          className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300"
+                          dangerouslySetInnerHTML={{ __html: relatedPost.title.rendered }}
+                        />
+                        <div 
+                          className="text-gray-600 dark:text-gray-400 line-clamp-2 mb-4"
+                          dangerouslySetInnerHTML={{ __html: relatedPost.excerpt.rendered }}
+                        />
+                        <div className="flex items-center text-primary font-medium">
+                          Read More <FiArrowRight className="ml-2 group-hover:translate-x-2 transition-transform duration-300" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     </motion.article>
   );
