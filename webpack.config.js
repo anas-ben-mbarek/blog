@@ -36,6 +36,13 @@ module.exports = (env, argv) => {
             'css-loader',
             'postcss-loader'
           ]
+        },
+        {
+          test: /\.(png|jpe?g|gif|svg)$/i,
+          type: 'asset/resource',
+          generator: {
+            filename: 'static/media/[name][ext]'
+          }
         }
       ]
     },
@@ -46,12 +53,14 @@ module.exports = (env, argv) => {
         inject: true,
         minify: isProduction
       }),
-      ...(isProduction ? [
-        new MiniCssExtractPlugin({
-          filename: 'static/css/[name].[contenthash:8].css',
-          chunkFilename: 'static/css/[name].[contenthash:8].chunk.css'
-        })
-      ] : [])
+      ...(isProduction
+        ? [
+            new MiniCssExtractPlugin({
+              filename: 'static/css/[name].[contenthash:8].css',
+              chunkFilename: 'static/css/[name].[contenthash:8].chunk.css'
+            })
+          ]
+        : [])
     ],
     resolve: {
       extensions: ['.js', '.jsx']
